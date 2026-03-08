@@ -1,0 +1,169 @@
+.container {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 16px;
+  animation: slideIn 0.3s ease-in-out;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.container.user {
+  flex-direction: row-reverse;
+  justify-content: flex-start;
+}
+
+.container.assistant {
+  flex-direction: row;
+  justify-content: flex-start;
+}
+
+.avatar {
+  font-size: 32px;
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.content {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-width: 60%;
+  position: relative;
+}
+
+.container.user .content {
+  align-items: flex-end;
+}
+
+.container.assistant .content {
+  align-items: flex-start;
+}
+
+.header {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  padding: 0 12px;
+}
+
+.text {
+  padding: 12px 16px;
+  border-radius: 8px;
+  word-wrap: break-word;
+  white-space: pre-wrap;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.container.user .text {
+  background-color: var(--color-message-user-bg);
+  color: var(--color-message-user-text);
+}
+
+.container.assistant .text {
+  background-color: var(--color-message-assistant-bg);
+  color: var(--color-message-assistant-text);
+}
+
+/* Markdown styles */
+.text h1,
+.text h2,
+.text h3,
+.text h4,
+.text h5,
+.text h6 {
+  margin: 12px 0 8px 0;
+  font-weight: 600;
+}
+
+.text h1 {
+  font-size: 20px;
+}
+
+.text h2 {
+  font-size: 18px;
+}
+
+.text h3 {
+  font-size: 16px;
+}
+
+.text p {
+  margin: 8px 0;
+}
+
+.text ul,
+.text ol {
+  margin: 8px 0;
+  padding-left: 24px;
+}
+
+.text li {
+  margin: 4px 0;
+}
+
+.text code {
+  background-color: rgba(0, 0, 0, 0.1);
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-family: 'Courier New', monospace;
+  font-size: 13px;
+}
+
+.container.user .text code {
+  background-color: rgba(0, 0, 0, 0.2);
+}
+
+.text pre {
+  background-color: rgba(0, 0, 0, 0.1);
+  padding: 12px;
+  border-radius: 4px;
+  overflow-x: auto;
+  margin: 8px 0;
+}
+
+.text pre code {
+  background-color: transparent;
+  padding: 0;
+}
+
+.container.user .text pre {
+  background-color: rgba(0, 0, 0, 0.2);
+}
+
+.copyButton {
+  display: none;
+  padding: 6px 10px;
+  font-size: 12px;
+  background-color: transparent;
+  border: 1px solid currentColor;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  color: inherit;
+}
+
+.container:hover .copyButton {
+  display: block;
+}
+
+.copyButton:hover {
+  background-color: rgba(0, 0, 0, 0.1);
+}
+
+.container.user .copyButton:hover {
+  background-color: rgba(0, 0, 0, 0.2);
+}

@@ -1,0 +1,118 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px 20px;
+  border-top: 1px solid var(--color-border);
+  background-color: var(--color-bg-primary);
+}
+
+.inputWrapper {
+  display: flex;
+  gap: 8px;
+  align-items: flex-end;
+}
+
+.attachButton {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border: none;
+  background-color: transparent;
+  cursor: pointer;
+  font-size: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: background-color var(--transition-fast);
+}
+
+.attachButton:hover:not(:disabled) {
+  background-color: var(--color-bg-secondary);
+}
+
+.attachButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.textarea {
+  flex: 1;
+  min-height: 40px;
+  max-height: 160px;
+  padding: 10px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  font-family: inherit;
+  font-size: 14px;
+  resize: none;
+  background-color: var(--color-bg-secondary);
+  color: var(--color-text-primary);
+  transition: border-color var(--transition-fast);
+}
+
+.textarea::placeholder {
+  color: var(--color-text-tertiary);
+}
+
+.textarea:focus {
+  outline: none;
+  border-color: var(--color-accent);
+}
+
+.textarea:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.buttonGroup {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.stopButton,
+.sendButton {
+  width: 40px;
+  height: 40px;
+  border: none;
+  border-radius: 4px;
+  font-size: 20px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--transition-fast);
+}
+
+.stopButton {
+  background-color: var(--color-bg-secondary);
+  color: var(--color-text-primary);
+}
+
+.stopButton:hover:not(:disabled) {
+  background-color: var(--color-warning);
+  color: white;
+}
+
+.stopButton:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.sendButton {
+  background-color: var(--color-accent);
+  color: white;
+  font-weight: 600;
+}
+
+.sendButton:hover:not(.disabled) {
+  background-color: var(--color-accent-hover);
+  transform: scale(1.05);
+}
+
+.sendButton.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

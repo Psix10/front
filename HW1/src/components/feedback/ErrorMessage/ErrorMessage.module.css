@@ -1,0 +1,20 @@
+.container {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  background-color: var(--color-error-bg);
+  border-left: 3px solid var(--color-error);
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+.icon {
+  flex-shrink: 0;
+  font-size: 16px;
+}
+
+.text {
+  color: var(--color-error);
+  font-weight: 500;
+}
