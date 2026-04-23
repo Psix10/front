@@ -8,7 +8,7 @@
 import { useRef, useCallback } from 'react';
 import { useChatStore } from '../store/chatStore';
 import { Message } from '../types';
-import { sendStreamingMessage, sendMessage } from '../utils/gigachatApi';
+import { sendStreamingMessage, sendMessage, uploadFile } from '../utils/gigachatApi';
 import { createMockReadableStream, getNextMockResponse } from '../utils/mockStream';
 
 function generateId(): string {
@@ -21,7 +21,7 @@ export function useGigaChat() {
 
   const isDemo = store.authCredentials?.credentials === 'demo_base64_credentials_mock';
 
-  const sendUserMessage = useCallback(async (chatId: string, text: string) => {
+  const sendUserMessage = useCallback(async (chatId: string, text: string, files: File[] = []) => {
     const {
       addMessage,
       updateMessageContent,
@@ -32,15 +32,47 @@ export function useGigaChat() {
       settings,
       chats,
     } = useChatStore.getState();
+    let attachments: Message['attachments'] = [];
+    let aiMsgId: string | null = null;
 
-    // 1. Добавляем сообщение пользователя
-    const userMsg: Message = {
-      id: generateId(),
-      role: 'user',
-      content: text,
-      timestamp: new Date(),
-    };
-    addMessage(chatId, userMsg);
+    try {
+      if (!isDemo && authCredentials && files.length > 0) {
+        const { credentials, scope } = authCredentials;
+
+        console.log('[sendUserMessage] uploading files:', files);
+
+        const uploadedFiles = await Promise.all(
+          files.map(file => uploadFile(file, credentials, scope))
+        );
+
+        console.log('[sendUserMessage] uploadedFiles:', uploadedFiles);
+
+        attachments = uploadedFiles.map((uploaded, i) => ({
+          id: uploaded.id,
+          name: files[i].name,
+          mimeType: files[i].type,
+          size: files[i].size,
+          type: 'file' as const,
+        }));
+      } else if (files.length > 0) {
+        console.log('[sendUserMessage] files without upload (demo/no auth):', files);
+
+        attachments = files.map(file => ({
+          name: file.name,
+          mimeType: file.type,
+          size: file.size,
+          type: 'file' as const,
+        }));
+      }
+
+      const userMsg: Message = {
+        id: generateId(),
+        role: 'user',
+        content: text,
+        timestamp: new Date(),
+        attachments,
+      };
+      addMessage(chatId, userMsg);
 
     // Автогенерация названия по первому сообщению
     const chat = chats.find(c => c.id === chatId);
@@ -49,7 +81,7 @@ export function useGigaChat() {
     }
 
     // 2. Создаём пустое сообщение ассистента
-    const aiMsgId = generateId();
+    aiMsgId = generateId();
     const aiMsg: Message = {
       id: aiMsgId,
       role: 'assistant',
@@ -64,8 +96,8 @@ export function useGigaChat() {
     abortControllerRef.current = new AbortController();
     const signal = abortControllerRef.current.signal;
 
-    try {
-      if (isDemo || !authCredentials) {
+    
+    if (isDemo || !authCredentials) {
         // Демо-режим: моковый стриминг
         const mockText = getNextMockResponse();
         const stream = createMockReadableStream(mockText, 35, 500);
@@ -104,6 +136,7 @@ export function useGigaChat() {
         try {
           // Пробуем стриминг
           let accumulated = '';
+          console.log('[sendUserMessage] messagesForApi:', messagesForApi);
           await sendStreamingMessage(
             credentials,
             scope,
@@ -140,7 +173,11 @@ export function useGigaChat() {
         }
       }
     } catch (err) {
-      if ((err as Error).name === 'AbortError' || signal.aborted) {
+      const isAborted =
+        (err as Error).name === 'AbortError' ||
+        abortControllerRef.current?.signal?.aborted === true;
+
+      if (isAborted) {
         const currentContent = useChatStore.getState().chats
           .find(c => c.id === chatId)?.messages
           .find(m => m.id === aiMsgId)?.content ?? '';
@@ -150,6 +187,7 @@ export function useGigaChat() {
         }
       } else {
         const errorMsg = (err as Error).message || 'Неизвестная ошибка';
+        console.error('[sendUserMessage] error:', err);
         setError(errorMsg);
         updateMessageContent(chatId, aiMsgId, `⚠️ Ошибка: ${errorMsg}`);
       }

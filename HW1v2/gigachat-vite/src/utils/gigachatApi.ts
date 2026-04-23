@@ -8,9 +8,9 @@
 import {
   ChatSettings,
   GigaChatMessage,
-  GigaChatRequest,
   GigaChatResponse,
   Message,
+  GigaChatFileUploadResponse,
 } from '../types';
 
 // Proxy Base URL 
@@ -54,9 +54,15 @@ function buildMessages(messages: Message[], systemPrompt: string): GigaChatMessa
 
   for (const msg of messages) {
     if (msg.role === 'system') continue;
+
+    const attachmentIds = msg.attachments
+      ?.map(att => att.id)
+      .filter((id): id is string => Boolean(id));
+
     apiMessages.push({
       role: msg.role as 'user' | 'assistant',
       content: msg.content,
+      ...(attachmentIds && attachmentIds.length > 0 ? { attachments: attachmentIds } : {}),
     });
   }
 
@@ -93,6 +99,9 @@ export async function sendStreamingMessage(
     temperature: settings.temperature,
     top_p: settings.topP,
     max_tokens: settings.maxTokens,
+    repetition_penalty: settings.repetitionPenalty,
+    stream: true,
+    function_call: 'auto',
   };
 
   const response = await fetch(`${API_BASE}/chat/stream`, {
@@ -178,6 +187,9 @@ export async function sendMessage(
     temperature: settings.temperature,
     top_p: settings.topP,
     max_tokens: settings.maxTokens,
+    repetition_penalty: settings.repetitionPenalty,
+    stream: false,
+    function_call: 'auto',
   };
 
   const response = await fetch(`${API_BASE}/chat`, {
@@ -202,4 +214,40 @@ export async function sendMessage(
 export function clearTokenCache(): void {
   cachedToken = null;
   tokenExpiresAt = 0;
+}
+
+
+export async function uploadFile(
+  file: File,
+  credentials: string,
+  scope: string
+): Promise<GigaChatFileUploadResponse> {
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('credentials', credentials);
+  formData.append('scope', scope);
+
+  console.log('[uploadFile] start', {
+    name: file.name,
+    size: file.size,
+    type: file.type,
+  });
+
+  const response = await fetch(`${API_BASE}/files/upload`, {
+    method: 'POST',
+    body: formData,
+  });
+
+  console.log('[uploadFile] response status', response.status);
+
+  if (!response.ok) {
+    const data = await response.json().catch(() => ({ error: `HTTP ${response.status}` }));
+    console.error('[uploadFile] failed', data);
+    throw new Error(`Ошибка загрузки файла: ${data.error}`);
+  }
+
+  const data = await response.json();
+  console.log('[uploadFile] success', data);
+
+  return data;
 }

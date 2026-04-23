@@ -1,18 +1,21 @@
 /**
  * Прокси-сервер для GigaChat API
  *
- * Зачем нужен:
- * 1. CORS — GigaChat API не разрешает запросы из браузера напрямую
- * 2. TLS — сертификаты Минцифры не распознаются браузером (rejectUnauthorized: false)
- * 3. Безопасность — credentials проксируются, а не хранятся в браузере
- *
  * Запуск: node server.mjs
  * Порт: 3001
  */
 
 import express from 'express';
 import cors from 'cors';
-import { Agent, fetch as undiciFetch } from 'undici';
+import crypto from 'node:crypto';
+import multer from 'multer';
+import undiciPkg from 'undici';
+
+const {
+  Agent,
+  fetch: undiciFetch,
+  FormData,
+} = undiciPkg;
 
 const app = express();
 app.use(cors());
@@ -20,7 +23,8 @@ app.use(express.json());
 
 const TOKEN_URL = 'https://ngw.devices.sberbank.ru:9443/api/v2/oauth';
 const CHAT_URL = 'https://gigachat.devices.sberbank.ru/api/v1/chat/completions';
-
+const FILES_URL = 'https://gigachat.devices.sberbank.ru/api/v1/files';
+const upload = multer({ storage: multer.memoryStorage() });
 // Agent с отключённой проверкой сертификата (Минцифры)
 const agent = new Agent({
   connect: { rejectUnauthorized: false },
@@ -176,6 +180,85 @@ app.post('/api/chat/stream', async (req, res) => {
 
 app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok', hasToken: !!cachedToken });
+});
+
+app.post('/api/files/upload', upload.single('file'), async (req, res) => {
+  try {
+    console.log('[file upload] request received');
+    console.log('[file upload] body:', req.body);
+    console.log(
+      '[file upload] file:',
+      req.file
+        ? {
+            originalname: req.file.originalname,
+            mimetype: req.file.mimetype,
+            size: req.file.size,
+          }
+        : null
+    );
+
+    const { credentials, scope, purpose = 'general' } = req.body;
+
+    if (!credentials || !scope) {
+      return res.status(400).json({ error: 'credentials and scope required' });
+    }
+
+    if (!req.file) {
+      return res.status(400).json({ error: 'file is required' });
+    }
+
+    const token = await getAccessToken(credentials, scope);
+
+    const form = new FormData();
+    const blob = new Blob(
+      [req.file.buffer],
+      {
+        type: req.file.mimetype || 'application/octet-stream',
+      }
+    );
+
+    form.append('file', blob, 'upload.png');
+    form.append('purpose', purpose);
+
+    console.log('[file upload] sending to gigachat', {
+      originalname: req.file.originalname,
+      sentAsName: 'upload.png',
+      mimeType: req.file.mimetype,
+      purpose,
+    });
+
+    const apiRes = await undiciFetch(FILES_URL, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: 'application/json',
+      },
+      body: form,
+      dispatcher: agent,
+    });
+
+    console.log('[file upload] gigachat status:', apiRes.status);
+
+    const rawText = await apiRes.text();
+    console.log('[file upload] gigachat raw response:', rawText);
+
+    if (!apiRes.ok) {
+      return res.status(apiRes.status).json({ error: rawText });
+    }
+
+    let data;
+    try {
+      data = JSON.parse(rawText);
+    } catch {
+      return res.status(500).json({ error: `Некорректный JSON от GigaChat Files API: ${rawText}` });
+    }
+
+    console.log('[file upload] gigachat response json:', data);
+    res.json(data);
+  } catch (err) {
+    console.error('[file upload error]', err);
+    res.status(500).json({ error: err instanceof Error ? err.message : String(err) });
+  }
 });
 
 const PORT = 3001;

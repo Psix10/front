@@ -16,7 +16,7 @@ import graphql from 'highlight.js/lib/languages/graphql';
 import dockerfile from 'highlight.js/lib/languages/dockerfile';
 import markdown from 'highlight.js/lib/languages/markdown';
 
-import { Copy, Check, Bot, User } from 'lucide-react';
+import { Copy, Check, Bot, User, Paperclip} from 'lucide-react';
 import { MessageProps } from '../types';
 
 hljs.registerLanguage('javascript', javascript);
@@ -120,22 +120,32 @@ export function Message({ message, variant, isStreaming = false }: MessageCompon
     >
       {/* Avatar */}
       <div
-        className={`message__avatar${isUser ? ' message__avatar--user' : ' message__avatar--assistant'}`}
+        className={`message__avatar${
+          isUser ? ' message__avatar--user' : ' message__avatar--assistant'
+        }`}
         aria-hidden="true"
       >
         {isUser ? <User size={15} strokeWidth={2} /> : <Bot size={15} strokeWidth={2} />}
       </div>
 
       {/* Bubble */}
-      <div className={`message__body${isUser ? ' message__body--user' : ' message__body--assistant'}`}>
+      <div
+        className={`message__body${
+          isUser ? ' message__body--user' : ' message__body--assistant'
+        }`}
+      >
         {/* Sender name */}
         <span className="message__sender">
           {isUser ? 'Вы' : 'AI-ассистент'}
         </span>
 
-        {/* Bubble content */}
+        {/* Bubble content + attachments + copy */}
         <div className="message__bubble-wrap">
-          <div className={`message__bubble${isUser ? ' message__bubble--user' : ' message__bubble--assistant'}${isStreaming ? ' message__bubble--streaming' : ''}`}>
+          <div
+            className={`message__bubble${
+              isUser ? ' message__bubble--user' : ' message__bubble--assistant'
+            }${isStreaming ? ' message__bubble--streaming' : ''}`}
+          >
             <div className="markdown-body">
               <ReactMarkdown
                 remarkPlugins={[remarkGfm]}
@@ -143,7 +153,11 @@ export function Message({ message, variant, isStreaming = false }: MessageCompon
                   code({ className, children, ...props }) {
                     const isInline = !className;
                     if (isInline) {
-                      return <code className="inline-code" {...props}>{children}</code>;
+                      return (
+                        <code className="inline-code" {...props}>
+                          {children}
+                        </code>
+                      );
                     }
                     return (
                       <CodeBlock className={className}>
@@ -158,18 +172,40 @@ export function Message({ message, variant, isStreaming = false }: MessageCompon
               >
                 {message.content}
               </ReactMarkdown>
-              {/* Blinking cursor during streaming */}
+
               {isStreaming && (
                 <span className="streaming-cursor" aria-hidden="true" />
               )}
             </div>
+
+            {message.attachments && message.attachments.length > 0 && (
+              <div className="message__attachments">
+                {message.attachments.map((file, index) => (
+                  <div key={`${file.name}-${index}`} className="message__attachment">
+                    <Paperclip size={14} />
+                    <div className="message__attachment-meta">
+                      <span className="message__attachment-name">{file.name}</span>
+                      {typeof file.size === 'number' && (
+                        <span className="message__attachment-size">
+                          {file.size < 1024 * 1024
+                            ? `${Math.round(file.size / 1024)} KB`
+                            : `${(file.size / 1024 / 1024).toFixed(1)} MB`}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Copy button — hidden while streaming */}
           {!isStreaming && (
             <button
               onClick={handleCopy}
-              className={`message__copy-btn${isUser ? ' message__copy-btn--user' : ' message__copy-btn--assistant'}`}
+              className={`message__copy-btn${
+                isUser ? ' message__copy-btn--user' : ' message__copy-btn--assistant'
+              }`}
               title="Скопировать"
               data-testid={`btn-copy-${message.id}`}
             >

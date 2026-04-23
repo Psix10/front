@@ -1,11 +1,19 @@
-import { useState, useRef, useCallback, KeyboardEvent } from 'react';
-import { Send, Square, Paperclip } from 'lucide-react';
+import { useState, useRef, useCallback, KeyboardEvent, ChangeEvent } from 'react';
+import { Send, Square, Paperclip, X } from 'lucide-react';
 import { InputAreaProps } from '../types';
 import { useChatStore } from '../store/chatStore';
 
-export function InputArea({ onSend, onStop, isGenerating = false, disabled = false }: InputAreaProps) {
+export function InputArea({
+  onSend,
+  onStop,
+  isGenerating = false,
+  disabled = false,
+}: InputAreaProps) {
   const [value, setValue] = useState('');
+  const [files, setFiles] = useState<File[]>([]);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   const authCredentials = useChatStore(s => s.authCredentials);
   const isDemo = authCredentials?.credentials === 'demo_base64_credentials_mock';
 
@@ -22,6 +30,24 @@ export function InputArea({ onSend, onStop, isGenerating = false, disabled = fal
     adjustHeight();
   };
 
+  const handleFilePick = () => {
+    if (disabled) return;
+    fileInputRef.current?.click();
+  };
+
+  const handleFilesChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const picked = Array.from(e.target.files ?? []);
+    if (!picked.length) return;
+
+    setFiles(prev => [...prev, ...picked]);
+
+    e.target.value = '';
+  };
+
+  const removeFile = (index: number) => {
+    setFiles(prev => prev.filter((_, i) => i !== index));
+  };
+
   const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
@@ -31,32 +57,43 @@ export function InputArea({ onSend, onStop, isGenerating = false, disabled = fal
 
   const handleSend = () => {
     const trimmed = value.trim();
-    if (!trimmed || disabled) return;
-    onSend(trimmed);
+    if ((!trimmed && files.length === 0) || disabled) return;
+
+    onSend(trimmed, files);
     setValue('');
+    setFiles([]);
+
     if (textareaRef.current) {
       textareaRef.current.style.height = 'auto';
     }
   };
 
-  const canSend = value.trim().length > 0 && !disabled;
+  const canSend = (!!value.trim() || files.length > 0) && !disabled;
 
   return (
     <div className="input-area" data-testid="input-area">
+      <input
+        ref={fileInputRef}
+        type="file"
+        multiple
+        hidden
+        onChange={handleFilesChange}
+        accept=".pdf,.doc,.docx,.txt,.md,.png,.jpg,.jpeg,.webp"
+      />
+
       <div className="input-area__box">
-        {/* Attach button */}
         <button
           type="button"
           className="input-area__attach-btn"
-          title="Прикрепить файл (недоступно)"
-          disabled
+          title="Прикрепить файл"
+          onClick={handleFilePick}
+          disabled={disabled}
           data-testid="btn-attach"
-          aria-label="Прикрепить изображение"
+          aria-label="Прикрепить файл"
         >
           <Paperclip size={18} />
         </button>
 
-        {/* Textarea */}
         <textarea
           ref={textareaRef}
           value={value}
@@ -69,7 +106,6 @@ export function InputArea({ onSend, onStop, isGenerating = false, disabled = fal
           data-testid="input-message"
         />
 
-        {/* Stop / Send button */}
         {isGenerating ? (
           <button
             type="button"
@@ -96,7 +132,23 @@ export function InputArea({ onSend, onStop, isGenerating = false, disabled = fal
         )}
       </div>
 
-      {/* Hint text */}
+      {files.length > 0 && (
+        <div className="input-area__files">
+          {files.map((file, index) => (
+            <div key={`${file.name}-${index}`} className="input-area__file-chip">
+              <span>{file.name}</span>
+              <button
+                type="button"
+                onClick={() => removeFile(index)}
+                aria-label={`Удалить ${file.name}`}
+              >
+                <X size={14} />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
       <p className="input-area__hint">
         {isDemo
           ? 'Демо-режим — используются моковые данные'

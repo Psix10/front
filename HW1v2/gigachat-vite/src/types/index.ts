@@ -2,11 +2,20 @@
 
 export type MessageRole = 'system' | 'user' | 'assistant';
 
+export interface ChatAttachment {
+  id?: string;
+  name: string;
+  mimeType?: string;
+  size?: number;
+  type: 'file';
+}
+
 export interface Message {
   id: string;
   role: MessageRole;
   content: string;
   timestamp: Date;
+  attachments?: ChatAttachment[];
 }
 
 export interface Chat {
@@ -19,11 +28,20 @@ export interface Chat {
 
 // Serializable versions for localStorage
 
+export interface SerializableAttachment {
+  id?: string;
+  name: string;
+  mimeType?: string;
+  size?: number;
+  type: 'file';
+}
+
 export interface SerializableMessage {
   id: string;
   role: MessageRole;
   content: string;
   timestamp: string; // ISO string
+  attachments?: SerializableAttachment[];
 }
 
 export interface SerializableChat {
@@ -97,6 +115,7 @@ export interface GigaChatTokenResponse {
 export interface GigaChatMessage {
   role: 'system' | 'user' | 'assistant';
   content: string;
+  attachments?: string[];
 }
 
 export interface GigaChatRequest {
@@ -145,7 +164,7 @@ export interface TypingIndicatorProps {
 }
 
 export interface InputAreaProps {
-  onSend: (text: string) => void;
+  onSend: (text: string, files: File[]) => void;
   onStop: () => void;
   isGenerating?: boolean;
   disabled?: boolean;
@@ -181,4 +200,11 @@ export interface ErrorMessageProps {
 
 export interface EmptyStateProps {
   onNewChat: () => void;
+}
+
+export interface GigaChatFileUploadResponse {
+  id: string;
+  filename?: string;
+  original_name?: string;
+  bytes?: number;
 }

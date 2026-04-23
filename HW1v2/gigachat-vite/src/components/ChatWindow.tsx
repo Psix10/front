@@ -25,18 +25,18 @@ export function ChatWindow({ chat, onOpenSettings }: ChatWindowProps) {
 
   // Handlers 
 
-  const handleSend = (text: string) => {
+  const handleSend = (text: string, files: File[]) => {
     if (!chat) {
       // Создаём новый чат и отправляем
       const newId = createChat();
       navigate(`/chat/${newId}`);
       // Небольшая задержка чтобы стор обновился
       setTimeout(() => {
-        sendUserMessage(newId, text);
+        sendUserMessage(newId, text, files);
       }, 0);
       return;
     }
-    sendUserMessage(chat.id, text);
+    sendUserMessage(chat.id, text, files);
   };
 
   const handleStop = () => {
